@@ -84,7 +84,7 @@ void RS232Bridge::loop() {
             mesh::Packet *pkt = _mgr->allocNew();
             if (pkt) {
               if (pkt->readFrom(_rx_buffer + 4, len)) {
-                onPacketReceived(pkt);
+                onPacketReceived(pkt,false);
               } else {
                 BRIDGE_DEBUG_PRINTLN("RX failed to parse packet\n");
                 _mgr->free(pkt);
@@ -144,8 +144,8 @@ void RS232Bridge::sendPacket(mesh::Packet *packet) {
   }
 }
 
-void RS232Bridge::onPacketReceived(mesh::Packet *packet) {
-  handleReceivedPacket(packet);
+void RS232Bridge::onPacketReceived(mesh::Packet *packet, bool client_packet) {
+  handleReceivedPacket(packet,client_packet);
 }
 
 #endif

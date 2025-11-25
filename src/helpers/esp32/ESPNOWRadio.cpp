@@ -57,9 +57,9 @@ static void OnDataRecv(const uint8_t *mac, const uint8_t *data, int len) {
     return;
   }
 
-  // Check packet header magic
+  // Check packet header magic, accept either bridge or client originating packets
   uint16_t received_magic = (data[0] << 8) | data[1];
-  if (received_magic != BRIDGE_PACKET_MAGIC) {
+  if (received_magic != BRIDGE_PACKET_MAGIC && received_magic != BRIDGE_CLIENT_PACKET_MAGIC) {
     ESPNOW_DEBUG_PRINTLN("RX invalid magic 0x%04X\n", received_magic);
     return;
   }
@@ -166,8 +166,8 @@ bool ESPNOWRadio::startSendRaw(const uint8_t* bytes, int len) {
 	uint8_t buffer[MAX_ESPNOW_PACKET_SIZE];
 	
 	// Write magic header (2 bytes)
-    buffer[0] = (BRIDGE_PACKET_MAGIC >> 8) & 0xFF;
-    buffer[1] = BRIDGE_PACKET_MAGIC & 0xFF;
+    buffer[0] = (BRIDGE_CLIENT_PACKET_MAGIC >> 8) & 0xFF;
+    buffer[1] = BRIDGE_CLIENT_PACKET_MAGIC & 0xFF;
 
     // Write packet payload starting after magic header and checksum
     const size_t packetOffset = BRIDGE_MAGIC_SIZE + BRIDGE_CHECKSUM_SIZE;

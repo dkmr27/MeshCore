@@ -31,7 +31,7 @@ bool BridgeBase::validateChecksum(const uint8_t *data, size_t len, uint16_t rece
   return received_checksum == calculated_checksum;
 }
 
-void BridgeBase::handleReceivedPacket(mesh::Packet *packet) {
+void BridgeBase::handleReceivedPacket(mesh::Packet *packet, bool client_packet) {
   // Guard against uninitialized state
   if (_initialized == false) {
     BRIDGE_DEBUG_PRINTLN("RX packet received before initialization\n");
@@ -39,7 +39,10 @@ void BridgeBase::handleReceivedPacket(mesh::Packet *packet) {
     return;
   }
 
-  if (!_seen_packets.hasSeen(packet)) {
+  if (client_packet) {
+    // client packets always enter the queue, without delay
+    _mgr->queueInbound(packet, millis());
+  } else if (!_seen_packets.hasSeen(packet)) {
     // bridge_delay provides a buffer to prevent immediate processing conflicts in the mesh network.
     _mgr->queueInbound(packet, millis() + _prefs->bridge_delay);
   } else {

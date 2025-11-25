@@ -108,7 +108,7 @@ public:
    *
    * @param packet The received mesh packet ready for processing
    */
-  void onPacketReceived(mesh::Packet *packet) override;
+  void onPacketReceived(mesh::Packet *packet, bool client_packet) override;
 
 private:
   /**

@@ -143,7 +143,7 @@ public:
    *
    * @param packet The received mesh packet
    */
-  void onPacketReceived(mesh::Packet *packet) override;
+  void onPacketReceived(mesh::Packet *packet, bool client_packet) override;
 
   /**
    * Called when a packet needs to be transmitted via ESP-NOW

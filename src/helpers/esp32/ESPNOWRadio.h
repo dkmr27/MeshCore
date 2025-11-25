@@ -12,6 +12,12 @@
   static constexpr uint16_t BRIDGE_PACKET_MAGIC = 0xC03E;
 
   /**
+   * This magic number differentiates a client packet from a bridge packet.
+   * The client packets will not be seen, so will be repeated over ESPNow once.
+   */
+  static constexpr uint16_t BRIDGE_CLIENT_PACKET_MAGIC = 0xC03F;
+
+  /**
    * @brief Common field sizes used by bridge implementations
    *
    * These constants define the size of common packet fields used across bridges.

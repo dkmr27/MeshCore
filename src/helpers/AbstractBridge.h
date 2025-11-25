@@ -42,5 +42,5 @@ public:
    *
    * @param packet The packet that was received.
    */
-  virtual void onPacketReceived(mesh::Packet* packet) = 0;
+  virtual void onPacketReceived(mesh::Packet* packet, bool client_packet = false) = 0;
 };

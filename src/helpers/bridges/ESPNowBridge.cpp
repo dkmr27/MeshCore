@@ -115,7 +115,10 @@ void ESPNowBridge::onDataRecv(const uint8_t *mac, const uint8_t *data, int32_t l
 
   // Check packet header magic
   uint16_t received_magic = (data[0] << 8) | data[1];
-  if (received_magic != BRIDGE_PACKET_MAGIC) {
+  bool client_magic = false;
+  if (received_magic == BRIDGE_CLIENT_PACKET_MAGIC) {
+    client_magic = true;
+  } else if (received_magic != BRIDGE_PACKET_MAGIC) {
     BRIDGE_DEBUG_PRINTLN("RX invalid magic 0x%04X\n", received_magic);
     return;
   }
@@ -145,7 +148,7 @@ void ESPNowBridge::onDataRecv(const uint8_t *mac, const uint8_t *data, int32_t l
   if (!pkt) return;
 
   if (pkt->readFrom(decrypted + BRIDGE_CHECKSUM_SIZE, payloadLen)) {
-    _instance->onPacketReceived(pkt);
+    _instance->onPacketReceived(pkt,client_magic);
   } else {
     _instance->_mgr->free(pkt);
   }
@@ -212,8 +215,8 @@ void ESPNowBridge::sendPacket(mesh::Packet *packet) {
   }
 }
 
-void ESPNowBridge::onPacketReceived(mesh::Packet *packet) {
-  handleReceivedPacket(packet);
+void ESPNowBridge::onPacketReceived(mesh::Packet *packet, bool client_packet) {
+  handleReceivedPacket(packet,client_packet);
 }
 
 #endif
