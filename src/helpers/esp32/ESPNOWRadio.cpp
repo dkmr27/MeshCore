@@ -28,7 +28,7 @@ bool validateChecksum(const uint8_t *data, size_t len, uint16_t received_checksu
 }
 
 void xorCrypt(uint8_t *data, size_t len) {
-  const char bridge_secret[] = "MrCrabs2025";  //*****************************************************************************************************************************
+  const char bridge_secret[] = ESPNOW_SECRET;
   size_t keyLen = strlen(bridge_secret);
   for (size_t i = 0; i < len; i++) {
     data[i] ^= bridge_secret[i % keyLen];
@@ -102,7 +102,7 @@ void ESPNOWRadio::init() {
   
 #ifdef ESPNOW_BRIDGE_COMPAT_RADIO 
   // Set wifi channel
-  uint8_t bridge_channel = 11;	//*****************************************************************************************************************************
+  uint8_t bridge_channel = ESPNOW_CHANNEL;
   if (esp_wifi_set_channel(bridge_channel, WIFI_SECOND_CHAN_NONE) != ESP_OK) { 
     ESPNOW_DEBUG_PRINTLN("Error setting WIFI channel to %d\n", bridge_channel);
     return;
