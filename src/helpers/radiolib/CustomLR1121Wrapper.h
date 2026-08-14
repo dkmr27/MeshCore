@@ -21,7 +21,7 @@ public:
 
   }
 
-  void doResetAGC() override { lr11x0ResetAGC((LR11x0 *)_radio, ((CustomLR1121 *)_radio)->getFreqMHz()); }
+  void doResetAGC() override { lr11x0ResetAGC((LR11x0 *)_radio, ((CustomLR1121 *)_radio)->getFreqMHz(), ((CustomLR1121 *)_radio)->getRxBoostedGainMode()); }
 
   bool isReceivingPacket() override {
     return ((CustomLR1121 *)_radio)->isReceiving();
