@@ -1,9 +1,15 @@
 #include "KissModem.h"
 #include <CayenneLPP.h>
 
+#if defined(KISS_WIFI)
+KissModem::KissModem(WiFiClient& client, mesh::LocalIdentity& identity, mesh::RNG& rng,
+                     mesh::Radio& radio, mesh::MainBoard& board, SensorManager& sensors)                   
+  : _client(client), _identity(identity), _rng(rng), _radio(radio), _board(board), _sensors(sensors) {
+#else
 KissModem::KissModem(Stream& serial, mesh::LocalIdentity& identity, mesh::RNG& rng,
-                     mesh::Radio& radio, mesh::MainBoard& board, SensorManager& sensors)
+                     mesh::Radio& radio, mesh::MainBoard& board, SensorManager& sensors)                   
   : _serial(serial), _identity(identity), _rng(rng), _radio(radio), _board(board), _sensors(sensors) {
+#endif
   _rx_len = 0;
   _rx_escaped = false;
   _rx_active = false;
@@ -102,7 +108,12 @@ bool KissModem::tryFlushFrames() {
       continue;
     }
 
+    #if defined(KISS_WIFI)
+    const int available = 500; // more than we need, less than ethernet MTU
+    #else
     const int available = _serial.availableForWrite();
+    #endif
+    
     if (available <= 0) {
       return false;
     }
@@ -113,7 +124,15 @@ bool KissModem::tryFlushFrames() {
       return false;
     }
 
+    #if defined(KISS_WIFI)
+    size_t chunk_written = 0;
+    if (_client && _client.connected()) {
+      chunk_written = _client.write(_tx_frame_buf[idx] + written_len, chunk_len); 
+    }
+    #else
     size_t chunk_written = _serial.write(_tx_frame_buf[idx] + written_len, chunk_len);
+    #endif
+    
     if (chunk_written == 0) {
       return false;
     }
@@ -202,8 +221,13 @@ void KissModem::writeHardwareError(uint8_t error_code) {
 void KissModem::loop() {
   tryFlushFrames();
 
+  #if defined(KISS_WIFI)
+  while (_client && _client.connected() && _client.available()) {
+    uint8_t b = _client.read();
+  #else 
   while (_serial.available()) {
     uint8_t b = _serial.read();
+  #endif
 
     if (b == KISS_FEND) {
       if (_rx_active && _rx_len > 0) {
@@ -708,7 +732,12 @@ void KissModem::handleGetMCUTemp() {
 
 void KissModem::handleReboot() {
   writeHardwareFrame(HW_RESP_OK, nullptr, 0);
+  #if defined(KISS_WIFI)
+  _client.flush();
+  #else
   _serial.flush();
+  #endif
+  
   delay(50);
   _board.reboot();
 }

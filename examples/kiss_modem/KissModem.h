@@ -5,6 +5,9 @@
 #include <Utils.h>
 #include <Mesh.h>
 #include <helpers/SensorManager.h>
+#if defined(KISS_WIFI)
+#include <WiFi.h>
+#endif
 
 #define KISS_FEND  0xC0
 #define KISS_FESC  0xDB
@@ -107,7 +110,12 @@ enum TxState {
 };
 
 class KissModem {
+  #if defined(KISS_WIFI)
+  WiFiClient& _client;
+  #else
   Stream& _serial;
+  #endif
+  
   mesh::LocalIdentity& _identity;
   mesh::RNG& _rng;
   mesh::Radio& _radio;
@@ -194,7 +202,13 @@ class KissModem {
   void handleGetSignalReport();
 
 public:
-  KissModem(Stream& serial, mesh::LocalIdentity& identity, mesh::RNG& rng,
+  KissModem(
+    #if defined(KISS_WIFI)
+    WiFiClient& _client,
+    #else
+    Stream& _serial,
+    #endif
+    mesh::LocalIdentity& identity, mesh::RNG& rng,
             mesh::Radio& radio, mesh::MainBoard& board, SensorManager& sensors);
 
   void begin();

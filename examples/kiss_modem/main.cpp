@@ -23,6 +23,11 @@
 #define USB_TX_TIMEOUT_MS 50
 #define USB_TX_BUFFER_SIZE 1024
 
+#if defined(KISS_WIFI)
+WiFiServer server(KISS_WIFI_PORT);
+WiFiClient client;
+#endif
+
 StdRNG rng;
 mesh::LocalIdentity identity;
 KissModem* modem;
@@ -108,6 +113,29 @@ void setup() {
   #error "KISS UART not supported on this platform"
 #endif
   modem = new KissModem(Serial1, identity, rng, radio_driver, board, sensors);
+#elif defined(KISS_WIFI)
+  // Bring up serial for debugging wifi connection
+  Serial.begin(115200);
+
+  // Connct to AP
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PWD);
+  Serial.print("Connecting to Wi-Fi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  Serial.println("\nConnected!");
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+
+  // Start TCP server
+  server.begin();
+  server.setNoDelay(true);
+  Serial.printf("Listening on port: %d\n", KISS_WIFI_PORT);
+
+  modem = new KissModem(client, identity, rng, radio_driver, board, sensors);
 #else
   Serial.begin(115200);
   uint32_t start = millis();
@@ -131,11 +159,29 @@ void setup() {
 
 void loop() {
   modem->loop();
+  #if defined(KISS_WIFI)
+  // Check for a new incoming network client connection
+  if (server.hasClient()) {
+    if (!client || !client.connected()) {
+      if (client) client.stop(); // Clean up old disconnected client
+      client = server.accept();
+      client.setNoDelay(true);
+      Serial.println("New TCP client connected.");
+    } else {
+      // Reject additional clients (only allow one connection at a time)
+      WiFiClient rejectedClient = server.accept();
+      rejectedClient.stop();
+      Serial.println("Rejected secondary client connection attempt.");
+    }
+  }
+  #endif
 
   if (!modem->isActuallyTransmitting() && !modem->isHostOutputBackedUp()) {
     if (!modem->isTxBusy()) {
       if ((uint32_t)(millis() - next_agc_reset_ms) >= AGC_RESET_INTERVAL_MS) {
+        #if !defined(USE_LR2021)  // resetAGC causes startrecv() to fail with -705 on LR2021, let's exclude it for now
         radio_driver.resetAGC();
+        #endif
         next_agc_reset_ms = millis();
       }
     }
