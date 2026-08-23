@@ -16,6 +16,7 @@ public:
   CustomLR2021Wrapper(CustomLR2021& radio, mesh::MainBoard& board) : RadioLibWrapper(radio, board) { }
 
   void setParams(float freq, float bw, uint8_t sf, uint8_t cr) override {
+    ((CustomLR2021 *)_radio)->standby(); // LR2021 must be in standby to accept new parameters
     ((CustomLR2021 *)_radio)->setFrequency(freq);
     ((CustomLR2021 *)_radio)->setSpreadingFactor(sf);
     ((CustomLR2021 *)_radio)->setBandwidth(bw);
