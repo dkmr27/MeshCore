@@ -80,6 +80,32 @@ void onGetStats(uint32_t* rx, uint32_t* tx, uint32_t* errors) {
   *errors = radio_driver.getPacketsRecvErrors();
 }
 
+#if defined(KISS_WIFI)
+void WiFiWaitConnect() {
+  Serial.print("Connecting to Wi-Fi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  Serial.println("\nConnected!");
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void WiFiInit() {
+  // Connct to AP
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PWD);
+  WiFiWaitConnect();
+
+  // Start TCP server
+  server.begin();
+  server.setNoDelay(true);
+  Serial.printf("Listening on port: %d\n", KISS_WIFI_PORT);
+}
+#endif
+
 void setup() {
   board.begin();
 
@@ -114,27 +140,8 @@ void setup() {
 #endif
   modem = new KissModem(Serial1, identity, rng, radio_driver, board, sensors);
 #elif defined(KISS_WIFI)
-  // Bring up serial for debugging wifi connection
-  Serial.begin(115200);
-
-  // Connct to AP
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PWD);
-  Serial.print("Connecting to Wi-Fi");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  
-  Serial.println("\nConnected!");
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
-
-  // Start TCP server
-  server.begin();
-  server.setNoDelay(true);
-  Serial.printf("Listening on port: %d\n", KISS_WIFI_PORT);
-
+  Serial.begin(115200); // Bring up serial for debugging wifi connection
+  WiFiInit();
   modem = new KissModem(client, identity, rng, radio_driver, board, sensors);
 #else
   Serial.begin(115200);
@@ -159,7 +166,16 @@ void setup() {
 
 void loop() {
   modem->loop();
+
   #if defined(KISS_WIFI)
+  // Check we are still connected to the AP, if not try reconnect
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Wi-Fi disconnected!");
+    WiFi.disconnect();
+    WiFi.reconnect();
+    WiFiWaitConnect();
+    }
+
   // Check for a new incoming network client connection
   if (server.hasClient()) {
     if (!client || !client.connected()) {
