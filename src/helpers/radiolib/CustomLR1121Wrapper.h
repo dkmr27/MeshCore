@@ -47,7 +47,7 @@ public:
   }
 
   bool setRxBoostedGainMode(bool en) override {
-    ((CustomLR1121 *)_radio)->setRxBoostedGainMode(en);
+    return ((CustomLR1121 *)_radio)->setRxBoostedGainMode(en);
   }
 
   bool getRxBoostedGainMode() const override {
