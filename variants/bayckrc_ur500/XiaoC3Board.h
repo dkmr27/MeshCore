@@ -75,6 +75,6 @@ public:
   }
 
   const char* getManufacturerName() const override {
-    return "BAYCKRC UR500";
+    return "BayckRC UR500";
   }
 };

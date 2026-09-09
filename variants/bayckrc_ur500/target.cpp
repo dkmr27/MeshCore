@@ -31,27 +31,14 @@ static const uint32_t rfswitch_dios[Module::RFSWITCH_MAX_PINS] = {
   RADIOLIB_LR11X0_DIO8,
   RADIOLIB_NC
 };
-/*15 0b00001111 RfswEnable
-0 0b00000000 RfSwStbyCfg
-4 0b00000100 RfSwRxCfg
-12 0b00001100 RfSwTxCfg
-0 0b00000000 RfSwTxHPCfg
-2 0b00000010 RfSwTxHfCfg
-0 0b00000000 Unused
-1 0b00000001 Rf
 
-MODE DIO10 DIO8 DIO7 DIO6 DIO5
-RX 0 0 1 0 0
-TX 0 1 1 0 0
-TXHP 0 0 0 0 0
-TXHF 0 0 0 1 0*/
 static const Module::RfSwitchMode_t rfswitch_table[] = {
   // mode                 DIO5  DIO6	DIO7	DIO8
   { LR11x0::MODE_STBY,   {LOW,  LOW,	LOW,	LOW  }},
-  { LR11x0::MODE_RX,     {LOW,  HIGH,	LOW,	LOW  }},
-  { LR11x0::MODE_TX,     {HIGH, HIGH,	LOW,	LOW  }},
+  { LR11x0::MODE_RX,     {LOW,  LOW,	HIGH,	LOW  }},
+  { LR11x0::MODE_TX,     {LOW,	LOW,  HIGH, HIGH }},
   { LR11x0::MODE_TX_HP,  {LOW, 	LOW,	LOW,	LOW  }},
-  { LR11x0::MODE_TX_HF,  {LOW,  LOW,	HIGH,	LOW  }},
+  { LR11x0::MODE_TX_HF,  {LOW,  HIGH,	LOW,	LOW  }},
   { LR11x0::MODE_GNSS,   {LOW,  LOW,	LOW,	LOW  }},
   { LR11x0::MODE_WIFI,   {LOW,  LOW,	LOW,	LOW  }},
   END_OF_MODE_TABLE,
@@ -81,4 +68,3 @@ mesh::LocalIdentity radio_new_identity() {
   RadioNoiseListener rng(radio);
   return mesh::LocalIdentity(&rng);  // create new random identity
 }
-
