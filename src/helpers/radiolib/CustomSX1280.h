@@ -39,6 +39,9 @@ class CustomSX1280 : public SX1280 {
         spi->setMOSI(P_LORA_MOSI);
         spi->begin();
       }
+    #elif defined(ESP8266)
+      spi->pins(P_LORA_SCLK, P_LORA_MISO, P_LORA_MOSI, P_LORA_NSS);
+      spi->begin();
     #else
       if (spi) spi->begin(P_LORA_SCLK, P_LORA_MISO, P_LORA_MOSI);
     #endif

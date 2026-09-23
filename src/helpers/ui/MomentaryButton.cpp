@@ -34,7 +34,14 @@ MomentaryButton::MomentaryButton(int8_t pin, int long_press_millis, int analog_t
 
 void MomentaryButton::begin() {
   if (_pin >= 0 && _threshold == 0) {
+    #if defined(ESP8266)
+    if(_pin == 16)
+      pinMode(_pin, _pull && _reverse ? INPUT_PULLUP : INPUT);
+    else
+      pinMode(_pin, _pull ? (_reverse ? INPUT_PULLUP : INPUT_PULLDOWN_16) : INPUT);
+    #else
     pinMode(_pin, _pull ? (_reverse ? INPUT_PULLUP : INPUT_PULLDOWN) : INPUT);
+    #endif
   }
 }
 

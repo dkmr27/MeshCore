@@ -6,7 +6,11 @@
   #include <FS.h>
 #endif
 
+#if defined(ESP8266)
+#define MAX_PACKET_HASHES  (32)
+#else
 #define MAX_PACKET_HASHES  (128+32)
+#endif
 
 class SimpleMeshTables : public mesh::MeshTables {
   uint8_t _hashes[MAX_PACKET_HASHES*MAX_HASH_SIZE];

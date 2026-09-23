@@ -10,6 +10,8 @@
   #include <LittleFS.h>
 #elif defined(ESP32)
   #include <SPIFFS.h>
+#elif defined(ESP8266)
+  #include <FS.h>
 #else
   #include <InternalFileSystem.h>
 #endif
@@ -42,8 +44,11 @@ void loadOrCreateIdentity() {
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
   InternalFS.begin();
   IdentityStore store(InternalFS, "");
-#elif defined(ESP32)
+#elif defined(ESP32) 
   SPIFFS.begin(true);
+  IdentityStore store(SPIFFS, "/identity");
+#elif defined(ESP8266)
+  SPIFFS.begin();
   IdentityStore store(SPIFFS, "/identity");
 #elif defined(RP2040_PLATFORM)
   LittleFS.begin();
