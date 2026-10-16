@@ -96,6 +96,10 @@ class CustomLR1121 : public LR1121 {
       // clip to the active PA's range (HF PA tops out at 13 dBm) rather than fail and keep the other band's PA
       int8_t clipped = power;
       checkOutputPower(power, &clipped, force_hp);
+#ifdef LR1121_HF_MAX_TX_POWER
+      // boards with an external 2.4GHz PA: limit the HF PA drive level
+      if (freqMHz > 1000.0f && clipped > LR1121_HF_MAX_TX_POWER) clipped = LR1121_HF_MAX_TX_POWER;
+#endif
       int16_t state = LR1121::setOutputPower(clipped, force_hp);
       if (state == RADIOLIB_ERR_NONE) {
         _txPower = power;
