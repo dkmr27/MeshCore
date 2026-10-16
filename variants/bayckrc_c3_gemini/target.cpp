@@ -8,6 +8,10 @@ RADIO_CLASS radio = new Module(P_LORA_NSS, P_LORA_DIO_1, P_LORA_RESET, P_LORA_BU
 
 WRAPPER_CLASS radio_driver(radio, board);
 
+#ifdef WITH_LORA_BRIDGE
+RADIO_CLASS radio2 = new Module(P_LORA2_NSS, P_LORA2_DIO_1, P_LORA2_RESET, P_LORA2_BUSY, spi);
+#endif
+
 ESP32RTCClock fallback_clock;
 AutoDiscoverRTCClock rtc_clock(fallback_clock);   // no I2C on this board, so no RTC to discover
 
@@ -42,8 +46,43 @@ bool radio_init() {
 
   radio.setRfSwitchTable(rfswitch_dios, rfswitch_table);
 
+#ifdef WITH_LORA_BRIDGE
+  // second radio for the LoRa bridge, settings fixed at build time for now.
+  // radio 1 keeps working if this fails, the bridge just won't start.
+  if (!radio2_init()) {
+    Serial.println("ERROR: radio 2 init failed");
+  }
+#endif
+
   return true;
 }
+
+#ifdef WITH_LORA_BRIDGE
+bool radio2_init() {
+  int status = radio2.begin(LORA2_FREQ, LORA2_BW, LORA2_SF, LORA2_CR, RADIOLIB_LR11X0_LORA_SYNC_WORD_PRIVATE,
+                            LORA2_TX_POWER, RadioLibWrapper::preambleLengthForSF(LORA2_SF), 0.0f);
+  if (status != RADIOLIB_ERR_NONE) {
+    Serial.print("ERROR: radio 2 begin failed: ");
+    Serial.println(status);
+    return false;
+  }
+
+  // begin() sets the modulation params before the frequency, so auto LDRO was worked out as sub-GHz.
+  // Redo it now the radio knows it's on 2.4GHz (SX128x compatible: LDRO on for SF > 10).
+  radio2.autoLDRO();
+  radio2.setCRC(2);
+  radio2.explicitHeader();
+#ifdef RX_BOOSTED_GAIN
+  radio2.setRxBoostedGainMode(true);
+#endif
+#ifdef LR1121_USE_DCDC
+  radio2.setRegulatorDCDC();
+#endif
+  radio2.setRfSwitchTable(rfswitch_dios, rfswitch_table);
+
+  return true;
+}
+#endif
 
 mesh::LocalIdentity radio_new_identity() {
   RadioNoiseListener rng(radio);

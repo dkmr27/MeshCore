@@ -758,6 +758,8 @@ void CommonCLI::handleGetCmd(uint32_t sender_timestamp, char* command, char* rep
             "rs232"
 #elif WITH_ESPNOW_BRIDGE
             "espnow"
+#elif defined(WITH_LORA_BRIDGE)
+            "lora"
 #else
             "none"
 #endif
