@@ -9,7 +9,8 @@ RADIO_CLASS radio = new Module(P_LORA_NSS, P_LORA_DIO_1, P_LORA_RESET, P_LORA_BU
 WRAPPER_CLASS radio_driver(radio, board);
 
 #ifdef WITH_LORA_BRIDGE
-RADIO_CLASS radio2 = new Module(P_LORA2_NSS, P_LORA2_DIO_1, P_LORA2_RESET, P_LORA2_BUSY, spi);
+RADIO2_CLASS radio2 = new Module(P_LORA2_NSS, P_LORA2_DIO_1, P_LORA2_RESET, P_LORA2_BUSY, spi);
+WRAPPER2_CLASS radio2_driver(radio2, board);
 #endif
 
 ESP32RTCClock fallback_clock;
@@ -80,7 +81,7 @@ bool radio2_init() {
 #endif
   radio2.setRfSwitchTable(rfswitch_dios, rfswitch_table);
 
-  return true;
+  return true;   // the bridge applies freq, bw, sf, cr and tx power
 }
 #endif
 

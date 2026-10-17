@@ -6,13 +6,21 @@
 #ifdef USE_CC310_HW_CRYPTO
 #include <Adafruit_nRFCrypto.h>
 #endif
+#ifndef RADIOLIB_WRAPPER_MAX_RADIOS
+  #define RADIOLIB_WRAPPER_MAX_RADIOS  2   // number of RadioLibWrapper instances (radios) supported
+#endif
+
 struct PacketMillis {
   uint32_t preambleMillis;  // preamble-detect -> header-valid deadline
   uint32_t payloadMillis;   // header-valid   -> rx-done deadline
 };
 
 class RadioLibWrapper : public mesh::Radio {
+  static RadioLibWrapper* _instances[RADIOLIB_WRAPPER_MAX_RADIOS];
+  int8_t _slot = -1;              // index in _instances, assigned in begin()
+
 protected:
+  volatile uint8_t _state = 0;    // STATE_* in RadioLibWrappers.cpp, set by the ISR as well
   PhysicalLayer* _radio;
   mesh::MainBoard* _board;
   uint32_t n_recv, n_sent, n_recv_errors;
@@ -22,7 +30,6 @@ protected:
   int32_t _floor_sample_sum;
   uint8_t _preamble_sf;
 
-  void idle();
   void startRecv();
   float packetScoreInt(float snr, int sf, int packet_len);
   virtual bool isReceivingPacket() =0;
@@ -32,6 +39,13 @@ public:
   RadioLibWrapper(PhysicalLayer& radio, mesh::MainBoard& board) : _radio(&radio), _board(&board), _preamble_sf(0) { n_recv = n_sent = 0; }
 
   void begin() override;
+  void idle();     // standby, the next recvRaw() restarts receive
+
+  // per-instance interrupt handlers, used by begin()
+  static void isr0(void);
+#if RADIOLIB_WRAPPER_MAX_RADIOS > 1
+  static void isr1(void);
+#endif
   virtual void powerOff() { _radio->sleep(); }
   int recvRaw(uint8_t* bytes, int sz) override;
   uint32_t getEstAirtimeFor(int len_bytes) override;

@@ -17,6 +17,6 @@ bool radio_init();
 mesh::LocalIdentity radio_new_identity();
 
 #ifdef WITH_LORA_BRIDGE
-extern RADIO_CLASS radio2;
+extern WRAPPER2_CLASS radio2_driver;
 bool radio2_init();
 #endif

@@ -476,6 +476,12 @@ void CommonCLI::handleCommand(uint32_t sender_timestamp, char* command, char* re
       _callbacks->formatPacketStatsReply(reply);
     } else if (sender_timestamp == 0 && memcmp(command, "stats-radio", 11) == 0 && (command[11] == 0 || command[11] == ' ')) {
       _callbacks->formatRadioStatsReply(reply);
+#ifdef WITH_LORA_BRIDGE
+    } else if (sender_timestamp == 0 && memcmp(command, "stats-packets2", 14) == 0 && (command[14] == 0 || command[14] == ' ')) {
+      _callbacks->formatPacket2StatsReply(reply);
+    } else if (sender_timestamp == 0 && memcmp(command, "stats-radio2", 12) == 0 && (command[12] == 0 || command[12] == ' ')) {
+      _callbacks->formatRadio2StatsReply(reply);
+#endif
     } else if (sender_timestamp == 0 && memcmp(command, "stats-core", 10) == 0 && (command[10] == 0 || command[10] == ' ')) {
       _callbacks->formatStatsReply(reply);
     } else {
@@ -628,6 +634,26 @@ void CommonCLI::handleSetCmd(uint32_t sender_timestamp, char* command, char* rep
     savePrefs();
     strcpy(reply, "OK");
 #endif
+#ifdef WITH_LORA_BRIDGE
+  } else if (memcmp(config, "radio2 ", 7) == 0) {
+    char tmp[64];
+    StrHelper::strncpy(tmp, &config[7], sizeof(tmp));
+    const char *parts[4];
+    int num = mesh::Utils::parseTextParts(tmp, parts, 4);
+    float freq  = num > 0 ? strtof(parts[0], nullptr) : 0.0f;
+    float bw    = num > 1 ? strtof(parts[1], nullptr) : 0.0f;
+    uint8_t sf  = num > 2 ? atoi(parts[2]) : 0;
+    uint8_t cr  = num > 3 ? atoi(parts[3]) : 0;
+    if (freq >= 150.0f && freq <= 2500.0f && sf >= 5 && sf <= 12 && cr >= 5 && cr <= 8 && bw >= 7.0f && bw <= 815.0f) {
+      _callbacks->setRadio2Params(freq, bw, sf, cr);
+      strcpy(reply, "OK - not saved, lost on reboot");
+    } else {
+      strcpy(reply, "Error, invalid radio params");
+    }
+  } else if (memcmp(config, "tx2 ", 4) == 0) {
+    _callbacks->setRadio2TxPower(atoi(&config[4]));
+    strcpy(reply, "OK - not saved, lost on reboot");
+#endif
 #ifdef WITH_RS232_BRIDGE
   } else if (memcmp(config, "bridge.baud ", 12) == 0) {
     uint32_t baud = atoi(&config[12]);
@@ -771,6 +797,18 @@ void CommonCLI::handleGetCmd(uint32_t sender_timestamp, char* command, char* rep
     sprintf(reply, "> %d", (uint32_t)_prefs->bridge_delay);
   } else if (memcmp(config, "bridge.source", 13) == 0) {
     sprintf(reply, "> %s", _prefs->bridge_pkt_src ? "logRx" : "logTx");
+#endif
+#ifdef WITH_LORA_BRIDGE
+  } else if (memcmp(config, "radio2", 6) == 0 && config[6] == 0) {
+    float freq, bw;
+    uint8_t sf, cr;
+    _callbacks->getRadio2Params(freq, bw, sf, cr);
+    char freq_s[16], bw_s[16];
+    strcpy(freq_s, StrHelper::ftoa(freq));
+    strcpy(bw_s, StrHelper::ftoa3(bw));
+    sprintf(reply, "> %s,%s,%d,%d", freq_s, bw_s, (uint32_t)sf, (uint32_t)cr);
+  } else if (memcmp(config, "tx2", 3) == 0 && config[3] == 0) {
+    sprintf(reply, "> %d", (int32_t)_callbacks->getRadio2TxPower());
 #endif
 #ifdef WITH_RS232_BRIDGE
   } else if (memcmp(config, "bridge.baud", 11) == 0) {

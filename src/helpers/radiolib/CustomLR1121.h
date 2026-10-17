@@ -109,7 +109,10 @@ class CustomLR1121 : public LR1121 {
     }
 
     int16_t setFrequency(float freq) override {
-      int16_t state = LR1121::setFrequency(freq);
+      // image calibration is for sub-GHz only. RadioLib still runs it on a 2.4GHz change of 20MHz or more,
+      // and the frequencies wrap in its 8 bit (4MHz step) params, so the LR1121 can reject it (-707)
+      // and the frequency is never set. Skip it above 1GHz.
+      int16_t state = LR1121::setFrequency(freq, freq > 1000.0f);
       // PA selection depends on the band, and set radio / tempradio don't call setTxPower
       if (state == RADIOLIB_ERR_NONE && _txPowerSet) state = setOutputPower(_txPower);
       return state;

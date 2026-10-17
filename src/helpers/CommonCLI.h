@@ -261,6 +261,16 @@ public:
   virtual void formatStatsReply(char *reply) = 0;
   virtual void formatRadioStatsReply(char *reply) = 0;
   virtual void formatPacketStatsReply(char *reply) = 0;
+#ifdef WITH_LORA_BRIDGE
+  // second radio (LoRa bridge)
+  virtual void formatRadio2StatsReply(char *reply) = 0;
+  virtual void formatPacket2StatsReply(char *reply) = 0;
+  // second radio settings, applied straight away and not saved
+  virtual void getRadio2Params(float& freq, float& bw, uint8_t& sf, uint8_t& cr) = 0;
+  virtual void setRadio2Params(float freq, float bw, uint8_t sf, uint8_t cr) = 0;
+  virtual int8_t getRadio2TxPower() = 0;
+  virtual void setRadio2TxPower(int8_t dbm) = 0;
+#endif
   virtual mesh::LocalIdentity& getSelfId() = 0;
   virtual void saveIdentity(const mesh::LocalIdentity& new_id) = 0;
   virtual void clearStats() = 0;

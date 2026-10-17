@@ -1179,6 +1179,18 @@ void MyMesh::formatPacketStatsReply(char *reply) {
                                        getNumRecvFlood(), getNumRecvDirect());
 }
 
+#if defined(WITH_LORA_BRIDGE)
+void MyMesh::formatRadio2StatsReply(char *reply) {
+  StatsFormatHelper::formatRadioStats(reply, &bridge.getRadio(), bridge.getRadio(), bridge.getTotalAirTime(),
+                                      bridge.getReceiveAirTime());
+}
+
+void MyMesh::formatPacket2StatsReply(char *reply) {
+  StatsFormatHelper::formatPacketStats(reply, bridge.getRadio(), bridge.getNumSentFlood(), bridge.getNumSentDirect(),
+                                       bridge.getNumRecvFlood(), bridge.getNumRecvDirect());
+}
+#endif
+
 void MyMesh::saveIdentity(const mesh::LocalIdentity &new_id) {
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
   IdentityStore store(*_fs, "");

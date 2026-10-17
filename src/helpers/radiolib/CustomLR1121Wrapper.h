@@ -13,10 +13,19 @@ public:
     // Legacy SX128x 2.4GHz bandwidths available only if frequency > 1000 MHz, 203.125,406.25,812.5 KHz
     bool legacy_hf_bw_mode = (freq>1000) && ((fabsf(bw - 203.125f) <= 0.001f) || (fabsf(bw - 406.25f) <= 0.001f) || (fabsf(bw - 812.5f) <= 0.001f));
 
-    ((CustomLR1121 *)_radio)->setFrequency(freq);
-    ((CustomLR1121 *)_radio)->setSpreadingFactor(sf);
-    ((CustomLR1121 *)_radio)->setBandwidth(bw,legacy_hf_bw_mode);
-    ((CustomLR1121 *)_radio)->setCodingRate(cr);
+    int16_t err;
+    if ((err = ((CustomLR1121 *)_radio)->setFrequency(freq)) != RADIOLIB_ERR_NONE) {
+      MESH_DEBUG_PRINTLN("CustomLR1121Wrapper: error: setFrequency(%d)", err);
+    }
+    if ((err = ((CustomLR1121 *)_radio)->setSpreadingFactor(sf)) != RADIOLIB_ERR_NONE) {
+      MESH_DEBUG_PRINTLN("CustomLR1121Wrapper: error: setSpreadingFactor(%d)", err);
+    }
+    if ((err = ((CustomLR1121 *)_radio)->setBandwidth(bw,legacy_hf_bw_mode)) != RADIOLIB_ERR_NONE) {
+      MESH_DEBUG_PRINTLN("CustomLR1121Wrapper: error: setBandwidth(%d)", err);
+    }
+    if ((err = ((CustomLR1121 *)_radio)->setCodingRate(cr)) != RADIOLIB_ERR_NONE) {
+      MESH_DEBUG_PRINTLN("CustomLR1121Wrapper: error: setCodingRate(%d)", err);
+    }
     updatePreamble(sf);
     PacketMillis pm = calcMaxPacketMillis(sf, bw, cr, preambleLengthForSF(sf));
     ((CustomLR1121 *)_radio)->setPreambleMillis(pm.preambleMillis);

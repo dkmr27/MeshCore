@@ -11,27 +11,56 @@
 #define NUM_NOISE_FLOOR_SAMPLES  64
 #define SAMPLING_THRESHOLD  14
 
-static volatile uint8_t state = STATE_IDLE;
+// RadioLib's interrupt callback is void(void) with no context, so each wrapper instance gets
+// a slot here and a fixed ISR that sets STATE_INT_READY on that instance.
+RadioLibWrapper* RadioLibWrapper::_instances[RADIOLIB_WRAPPER_MAX_RADIOS] = { };
 
-// this function is called when a complete packet
-// is transmitted by the module
-static
+// these functions are called when a packet is received, or a transmit completes
 #if defined(ESP8266) || defined(ESP32)
   ICACHE_RAM_ATTR
 #endif
-void setFlag(void) {
-  // we sent a packet, set the flag
-  state |= STATE_INT_READY;
+void RadioLibWrapper::isr0(void) {
+  _instances[0]->_state |= STATE_INT_READY;
 }
 
+#if RADIOLIB_WRAPPER_MAX_RADIOS > 1
+#if defined(ESP8266) || defined(ESP32)
+  ICACHE_RAM_ATTR
+#endif
+void RadioLibWrapper::isr1(void) {
+  _instances[1]->_state |= STATE_INT_READY;
+}
+#endif
+
+static void (* const isr_funcs[])(void) = {
+  RadioLibWrapper::isr0,
+#if RADIOLIB_WRAPPER_MAX_RADIOS > 1
+  RadioLibWrapper::isr1,
+#endif
+};
+
 void RadioLibWrapper::begin() {
-  _radio->setPacketReceivedAction(setFlag);  // this is also SentComplete interrupt
+  if (_slot < 0) {
+    for (int i = 0; i < RADIOLIB_WRAPPER_MAX_RADIOS; i++) {
+      if (_instances[i] == NULL) {
+        _instances[i] = this;   // must be set before the interrupt is attached
+        _slot = i;
+        break;
+      }
+    }
+  }
+  if (_slot >= 0) {
+    _radio->setPacketReceivedAction(isr_funcs[_slot]);  // this is also SentComplete interrupt
+  } else {
+    MESH_DEBUG_PRINTLN("RadioLibWrapper: error: more than %d radios", RADIOLIB_WRAPPER_MAX_RADIOS);
+  }
   _preamble_sf = getSpreadingFactor();
   _radio->setPreambleLength(preambleLengthForSF(_preamble_sf)); // longer preamble for lower SF improves reliability
-  state = STATE_IDLE;
+  _state = STATE_IDLE;
 
-  if (_board->getStartupReason() == BD_STARTUP_RX_PACKET) {  // received a LoRa packet (while in deep sleep)
-    setFlag(); // LoRa packet is already received
+  // received a LoRa packet (while in deep sleep), only the first radio is a wake source
+  if (_slot == 0 && _board->getStartupReason() == BD_STARTUP_RX_PACKET) {
+    _state |= STATE_INT_READY; // LoRa packet is already received
   }
 
   _noise_floor = 0;
@@ -56,7 +85,7 @@ void RadioLibWrapper::setTxPower(int8_t dbm) {
 
 void RadioLibWrapper::idle() {
   _radio->standby();
-  state = STATE_IDLE;   // need another startReceive()
+  _state = STATE_IDLE;   // need another startReceive()
 }
 
 void RadioLibWrapper::triggerNoiseFloorCalibrate(int threshold) {
@@ -73,10 +102,10 @@ void RadioLibWrapper::doResetAGC() {
 
 void RadioLibWrapper::resetAGC() {
   // make sure we're not mid-receive of packet!
-  if ((state & STATE_INT_READY) != 0 || isReceivingPacket()) return;
+  if ((_state & STATE_INT_READY) != 0 || isReceivingPacket()) return;
 
   doResetAGC();
-  state = STATE_IDLE;   // trigger a startReceive()
+  _state = STATE_IDLE;   // trigger a startReceive()
 
   // Reset noise floor sampling so it reconverges from scratch.
   // Without this, a stuck _noise_floor of -120 makes the sampling threshold
@@ -88,7 +117,7 @@ void RadioLibWrapper::resetAGC() {
 }
 
 void RadioLibWrapper::loop() {
-  if (state == STATE_RX && _num_floor_samples < NUM_NOISE_FLOOR_SAMPLES) {
+  if (_state == STATE_RX && _num_floor_samples < NUM_NOISE_FLOOR_SAMPLES) {
     if (!isReceivingPacket()) {
       int rssi = getCurrentRSSI();
       if (rssi < _noise_floor + SAMPLING_THRESHOLD) {  // only consider samples below current floor + sampling THRESHOLD
@@ -115,19 +144,19 @@ void RadioLibWrapper::startRecv() {
   #endif
   int err = _radio->startReceive();
   if (err == RADIOLIB_ERR_NONE) {
-    state = STATE_RX;
+    _state = STATE_RX;
   } else {
     MESH_DEBUG_PRINTLN("RadioLibWrapper: error: startReceive(%d)", err);
   }
 }
 
 bool RadioLibWrapper::isInRecvMode() const {
-  return (state & ~STATE_INT_READY) == STATE_RX;
+  return (_state & ~STATE_INT_READY) == STATE_RX;
 }
 
 int RadioLibWrapper::recvRaw(uint8_t* bytes, int sz) {
   int len = 0;
-  if (state & STATE_INT_READY) {
+  if (_state & STATE_INT_READY) {
     len = _radio->getPacketLength();
     if (len > 0) {
       if (len > sz) { len = sz; }
@@ -142,16 +171,16 @@ int RadioLibWrapper::recvRaw(uint8_t* bytes, int sz) {
       }
     }
     #if defined(USE_LR2021)
-    state = STATE_RX;     // LR2021 stays in Rx after readData, calling startReceive while still in Rx throws -706 errors
+    _state = STATE_RX;     // LR2021 stays in Rx after readData, calling startReceive while still in Rx throws -706 errors
     #else
-    state = STATE_IDLE;   // need another startReceive()
+    _state = STATE_IDLE;   // need another startReceive()
     #endif
   }
 
-  if (state != STATE_RX) {
+  if (_state != STATE_RX) {
     int err = _radio->startReceive();
     if (err == RADIOLIB_ERR_NONE) {
-      state = STATE_RX;
+      _state = STATE_RX;
     } else {
       MESH_DEBUG_PRINTLN("RadioLibWrapper: error: startReceive(%d)", err);
     }
@@ -167,7 +196,7 @@ bool RadioLibWrapper::startSendRaw(const uint8_t* bytes, int len) {
   _board->onBeforeTransmit();
   int err = _radio->startTransmit((uint8_t *) bytes, len);
   if (err == RADIOLIB_ERR_NONE) {
-    state = STATE_TX_WAIT;
+    _state = STATE_TX_WAIT;
     return true;
   }
   MESH_DEBUG_PRINTLN("RadioLibWrapper: error: startTransmit(%d)", err);
@@ -177,8 +206,8 @@ bool RadioLibWrapper::startSendRaw(const uint8_t* bytes, int len) {
 }
 
 bool RadioLibWrapper::isSendComplete() {
-  if (state & STATE_INT_READY) {
-    state = STATE_IDLE;
+  if (_state & STATE_INT_READY) {
+    _state = STATE_IDLE;
     n_sent++;
     return true;
   }
@@ -188,7 +217,7 @@ bool RadioLibWrapper::isSendComplete() {
 void RadioLibWrapper::onSendFinished() {
   _radio->finishTransmit();
   _board->onAfterTransmit();
-  state = STATE_IDLE;
+  _state = STATE_IDLE;
 }
 
 int16_t RadioLibWrapper::performChannelScan() {
@@ -203,9 +232,9 @@ bool RadioLibWrapper::isChannelActive() {
   if (_cad_enabled) {
     int16_t result = performChannelScan();
     // scanChannel() triggers DIO interrupt (CAD done) which sets STATE_INT_READY
-    // via setFlag() ISR. Clear it before restarting RX so recvRaw() doesn't
+    // via the ISR. Clear it before restarting RX so recvRaw() doesn't
     // try to read a non-existent packet and count a spurious recv error.
-    state = STATE_IDLE;
+    _state = STATE_IDLE;
     startRecv();
     if (result != RADIOLIB_CHANNEL_FREE) return true;
   }

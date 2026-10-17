@@ -224,6 +224,16 @@ public:
   void formatStatsReply(char *reply) override;
   void formatRadioStatsReply(char *reply) override;
   void formatPacketStatsReply(char *reply) override;
+#if defined(WITH_LORA_BRIDGE)
+  void formatRadio2StatsReply(char *reply) override;
+  void formatPacket2StatsReply(char *reply) override;
+  void getRadio2Params(float& freq, float& bw, uint8_t& sf, uint8_t& cr) override {
+    freq = bridge.getFreq(); bw = bridge.getBandwidth(); sf = bridge.getSpreadFactor(); cr = bridge.getCodingRate();
+  }
+  void setRadio2Params(float freq, float bw, uint8_t sf, uint8_t cr) override { bridge.setRadioParams(freq, bw, sf, cr); }
+  int8_t getRadio2TxPower() override { return bridge.getTxPower(); }
+  void setRadio2TxPower(int8_t dbm) override { bridge.setTxPower(dbm); }
+#endif
   void startRegionsLoad() override;
   bool saveRegions() override;
   void onDefaultRegionChanged(const RegionEntry* r) override;
