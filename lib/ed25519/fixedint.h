@@ -70,3 +70,14 @@
         #define INT64_C(v) v ##I64
     #endif
 #endif
+
+/* Large const tables: keep in flash on ESP8266, where .rodata otherwise lives in RAM.
+   All reads are 32-bit aligned, which the ESP8266 can do directly from mapped flash. */
+#ifndef ED25519_FLASH
+    #if defined(ESP8266)
+        #include <pgmspace.h>
+        #define ED25519_FLASH PROGMEM
+    #else
+        #define ED25519_FLASH
+    #endif
+#endif

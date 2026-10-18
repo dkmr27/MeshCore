@@ -13,7 +13,7 @@
 #include "sha512.h"
 
 /* the K array */
-static const uint64_t K[80] = {
+static const uint64_t K[80] ED25519_FLASH = {
     UINT64_C(0x428a2f98d728ae22), UINT64_C(0x7137449123ef65cd), 
     UINT64_C(0xb5c0fbcfec4d3b2f), UINT64_C(0xe9b5dba58189dbbc),
     UINT64_C(0x3956c25bf348b538), UINT64_C(0x59f111f1b605d019), 
