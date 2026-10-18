@@ -76,6 +76,10 @@ void setup() {
   SPIFFS.begin(true);
   fs = &SPIFFS;
   IdentityStore store(SPIFFS, "/identity");
+#elif defined(ESP8266)
+  SPIFFS.begin();
+  fs = &SPIFFS;
+  IdentityStore store(SPIFFS, "/identity");
 #elif defined(RP2040_PLATFORM)
   LittleFS.begin();
   fs = &LittleFS;

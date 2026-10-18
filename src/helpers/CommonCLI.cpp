@@ -29,7 +29,7 @@ static bool isValidName(const char *n) {
 
 void CommonCLI::loadPrefs(FILESYSTEM* fs) {
   if (fs->exists("/prefs.json")) {
-#if defined(RP2040_PLATFORM)
+#if defined(RP2040_PLATFORM) || defined(ESP8266)
     File file = fs->open("/prefs.json", "r");
 #else
     File file = fs->open("/prefs.json");
@@ -47,7 +47,7 @@ void CommonCLI::loadPrefs(FILESYSTEM* fs) {
 }
 
 void CommonCLI::loadPrefsInt(FILESYSTEM* fs, const char* filename) {  // Legacy prefs loader
-#if defined(RP2040_PLATFORM)
+#if defined(RP2040_PLATFORM) || defined(ESP8266)
   File file = fs->open(filename, "r");
 #else
   File file = fs->open(filename);
@@ -144,7 +144,7 @@ bool CommonCLI::savePrefs(FILESYSTEM* fs) {
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
   fs->remove("/prefs.json");
   File file = fs->open("/prefs.json", FILE_O_WRITE);
-#elif defined(RP2040_PLATFORM)
+#elif defined(RP2040_PLATFORM) || defined(ESP8266)
   File file = fs->open("/prefs.json", "w");
 #else
   File file = fs->open("/prefs.json", "w", true);
