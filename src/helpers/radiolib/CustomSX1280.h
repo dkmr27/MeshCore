@@ -61,8 +61,8 @@ class CustomSX1280 : public SX1280 {
   #endif
 
 
-    #ifdef SX1268_RX_BOOSTED_GAIN
-      setHighSensitivityMode(SX1268_RX_BOOSTED_GAIN);
+    #ifdef SX128X_RX_BOOSTED_GAIN
+      setHighSensitivityMode(SX128X_RX_BOOSTED_GAIN);
     #endif
 
       return true;  // success
